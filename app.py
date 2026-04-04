@@ -37,34 +37,7 @@ case_studies = {
 }
 
 # -----------------------------
-# SCORING FUNCTION (NEW FIX)
-# -----------------------------
-def compute_scores(data, geography):
-    c = (data["commitment_strength"] + data["language_strength"] +
-         data["timeline_clarity"] + data["geographic_scope"]) / 12 * 10
-
-    i = (data["reported_progress"] + data["progress_vs_timeline"] +
-         data["supply_chain_evidence"] + data["consistency_across_reports"]) / 12 * 10
-
-    t = (data["reporting_frequency"] + data["data_granularity"] +
-         data["third_party_verification"] + data["accessibility"]) / 12 * 10
-
-    geo_modifier = 0
-    if geography in ["India", "Asia"]:
-        geo_modifier = -0.5
-    elif geography == "Global":
-        geo_modifier = 0.5
-    elif geography == "Europe":
-        geo_modifier = 1
-
-    i = max(0, min(10, i + geo_modifier))
-
-    final = c*0.3 + i*0.4 + t*0.3
-
-    return round(c,1), round(i,1), round(t,1), round(final,1)
-
-# -----------------------------
-# SIDEBAR
+# SIDEBAR INPUT
 # -----------------------------
 st.sidebar.header("Company Input")
 
@@ -76,8 +49,6 @@ geography = st.sidebar.selectbox(
 )
 
 selected_case = st.sidebar.selectbox("Load Case Study", list(case_studies.keys()))
-compare_case = st.sidebar.selectbox("Compare With", list(case_studies.keys()))
-
 default = case_studies[selected_case]
 
 def val(key):
@@ -105,66 +76,100 @@ with st.sidebar.expander("Transparency"):
     accessibility = st.slider("Accessibility", 0, 3, val("accessibility"))
 
 # -----------------------------
-# CURRENT COMPANY SCORE
+# CALCULATIONS
 # -----------------------------
-current_data = {
-    "commitment_strength": commitment_strength,
-    "language_strength": language_strength,
-    "timeline_clarity": timeline_clarity,
-    "geographic_scope": geographic_scope,
-    "reported_progress": reported_progress,
-    "progress_vs_timeline": progress_vs_timeline,
-    "supply_chain_evidence": supply_chain_evidence,
-    "consistency_across_reports": consistency_across_reports,
-    "reporting_frequency": reporting_frequency,
-    "data_granularity": data_granularity,
-    "third_party_verification": third_party_verification,
-    "accessibility": accessibility
-}
+commitment_score = (commitment_strength + language_strength + timeline_clarity + geographic_scope)/12*10
+implementation_score = (reported_progress + progress_vs_timeline + supply_chain_evidence + consistency_across_reports)/12*10
+transparency_score = (reporting_frequency + data_granularity + third_party_verification + accessibility)/12*10
 
-c_score, i_score, t_score, final_score = compute_scores(current_data, geography)
+# Geo modifier
+geo_modifier = 0
+if geography in ["India", "Asia"]:
+    geo_modifier = -0.5
+elif geography == "Global":
+    geo_modifier = 0.5
+elif geography == "Europe":
+    geo_modifier = 1
+
+implementation_score = max(0, min(10, implementation_score + geo_modifier))
+
+final_score = commitment_score*0.3 + implementation_score*0.4 + transparency_score*0.3
+
+credibility_gap = commitment_score - implementation_score
+transparency_deficit = 10 - transparency_score
 
 # -----------------------------
-# UI
+# RISK LOGIC
+# -----------------------------
+if commitment_score >= 7 and implementation_score <= 4:
+    risk = "High Greenwashing Risk"
+elif final_score < 4:
+    risk = "High Risk"
+elif final_score < 7:
+    risk = "Moderate Risk"
+else:
+    risk = "Low Risk"
+
+# Strategy
+if transparency_score < 4:
+    priority = "Increase transparency and disclosure pressure"
+elif implementation_score < 5:
+    priority = "Investigate supply chain implementation"
+else:
+    priority = "Monitor and maintain engagement"
+
+# -----------------------------
+# UI RESULTS
 # -----------------------------
 st.subheader(f"Results for: {company_name or selected_case}")
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Commitment", c_score)
-col2.metric("Implementation", i_score)
-col3.metric("Transparency", t_score)
-
-st.metric("Final Score", final_score)
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("Commitment", f"{commitment_score:.1f}")
+col2.metric("Implementation", f"{implementation_score:.1f}")
+col3.metric("Transparency", f"{transparency_score:.1f}")
+col4.metric("Final Score", f"{final_score:.1f}")
 
 # -----------------------------
-# COMPARISON (FIXED)
+# INSIGHTS (NEW)
 # -----------------------------
-if compare_case != "None":
-    st.header("🔄 Comparison Analysis")
+st.markdown("### 🔍 Key Insights")
 
-    comp_data = case_studies[compare_case]
-    c2, i2, t2, f2 = compute_scores(comp_data, geography)
+st.write(f"""
+**Risk Level:** {risk}  
 
-    col1, col2 = st.columns(2)
+**Credibility Gap:** {credibility_gap:.1f}  
+→ Difference between commitment and actual implementation  
 
-    with col1:
-        st.subheader("Current")
-        st.write(f"Final Score: {final_score}")
+**Transparency Deficit:** {transparency_deficit:.1f}  
+→ Indicates how much information is missing or unclear  
+""")
 
-    with col2:
-        st.subheader(compare_case)
-        st.write(f"Final Score: {f2}")
+# -----------------------------
+# STRATEGIC INTERPRETATION (NEW)
+# -----------------------------
+st.markdown("### 🧠 Strategic Interpretation")
 
-    st.subheader("📊 Difference")
+if credibility_gap > 2:
+    insight = "Significant gap between commitments and execution. High potential for accountability-focused campaigns."
+elif transparency_deficit > 3:
+    insight = "Limited disclosure creates an opportunity for transparency-driven pressure."
+else:
+    insight = "Company appears relatively aligned, focus should be on monitoring and incremental pressure."
 
-    st.write(f"Commitment Gap: {round(c_score - c2,1)}")
-    st.write(f"Implementation Gap: {round(i_score - i2,1)}")
-    st.write(f"Transparency Gap: {round(t_score - t2,1)}")
+st.write(insight)
 
-    if final_score > f2:
-        st.success("Current company performs better overall.")
-    else:
-        st.warning(f"{compare_case} performs better overall.")
+# -----------------------------
+# ADVOCACY RECOMMENDATION (NEW)
+# -----------------------------
+st.markdown("### 📣 Advocacy Recommendation")
+
+st.write(f"""
+**Primary Action:** {priority}  
+
+This company should be targeted through:
+- Strategic engagement where possible  
+- Escalation if progress remains unclear  
+""")
 
 # -----------------------------
 # REPORT
@@ -177,7 +182,13 @@ Developed by: Anusha Narain | Ahimsa Fellowship (2025–26)
 Company: {company_name or "Sample"}
 Geography: {geography}
 
-Final Score: {final_score}
+Final Score: {final_score:.1f}
+Risk: {risk}
+
+Credibility Gap: {credibility_gap:.1f}
+Transparency Deficit: {transparency_deficit:.1f}
+
+Priority Action: {priority}
 """
 
 st.download_button("📥 Download Report", report, file_name="report.txt")

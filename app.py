@@ -1,45 +1,26 @@
 import streamlit as st
+import re
+import numpy as np
 import plotly.graph_objects as go
 
-# -----------------------------
+# =========================
 # PAGE CONFIG
-# -----------------------------
-st.set_page_config(page_title="Corporate Accountability Tool", layout="wide")
+# =========================
+st.set_page_config(page_title="Corporate Accountability Intelligence System", layout="wide")
 
-# -----------------------------
-# TITLE + CREDIT
-# -----------------------------
-st.title("🧾 Corporate Accountability Tool")
-st.caption("Developed by Anusha Narain | Ahimsa Fellowship (2025–26)")
+# =========================
+# HEADER
+# =========================
+st.title("🧾 Corporate Accountability Intelligence System")
+st.caption("Evidence-based | Transparent | Advocacy-Oriented")
 
-st.info("This tool helps identify which companies need advocacy pressure and what kind of campaign is most effective.")
+st.info("Evidence → Perception → Interpretation → Credibility → Decision → Advocacy")
+st.warning("⚠️ Decision-support tool. Requires expert validation.")
 
-# -----------------------------
-# CASE STUDIES
-# -----------------------------
-case_studies = {
-    "None": {},
-    "Sodexo": {
-        "commitment_strength": 3, "language_strength": 2, "timeline_clarity": 3, "geographic_scope": 2,
-        "reported_progress": 2, "progress_vs_timeline": 2, "supply_chain_evidence": 1, "consistency_across_reports": 2,
-        "reporting_frequency": 2, "data_granularity": 1, "third_party_verification": 1, "accessibility": 2
-    },
-    "Marriott": {
-        "commitment_strength": 2, "language_strength": 1, "timeline_clarity": 1, "geographic_scope": 2,
-        "reported_progress": 1, "progress_vs_timeline": 1, "supply_chain_evidence": 1, "consistency_across_reports": 1,
-        "reporting_frequency": 1, "data_granularity": 1, "third_party_verification": 0, "accessibility": 1
-    },
-    "Nestlé": {
-        "commitment_strength": 3, "language_strength": 3, "timeline_clarity": 3, "geographic_scope": 3,
-        "reported_progress": 2, "progress_vs_timeline": 2, "supply_chain_evidence": 2, "consistency_across_reports": 2,
-        "reporting_frequency": 3, "data_granularity": 2, "third_party_verification": 2, "accessibility": 3
-    }
-}
-
-# -----------------------------
-# SIDEBAR INPUT
-# -----------------------------
-st.sidebar.header("Company Input")
+# =========================
+# CONTEXT
+# =========================
+st.sidebar.header("📍 Context")
 
 company_name = st.sidebar.text_input("Company Name")
 
@@ -48,153 +29,310 @@ geography = st.sidebar.selectbox(
     ["Global", "Europe", "North America", "Asia", "India", "Multiple regions", "Unknown"]
 )
 
-selected_case = st.sidebar.selectbox("Load Case Study", list(case_studies.keys()))
-default = case_studies[selected_case]
+# =========================
+# CASE STUDY MODE
+# =========================
+st.markdown("## 🧪 Case Study Demo Mode")
 
-def val(key):
-    return default.get(key, 1)
+case = st.selectbox("Load Case Study", ["None", "Marriott International", "Nestlé"])
 
-# -----------------------------
-# INPUTS
-# -----------------------------
-with st.sidebar.expander("Commitment"):
-    commitment_strength = st.slider("Commitment Strength", 0, 3, val("commitment_strength"))
-    language_strength = st.slider("Language Strength", 0, 3, val("language_strength"))
-    timeline_clarity = st.slider("Timeline Clarity", 0, 3, val("timeline_clarity"))
-    geographic_scope = st.slider("Geographic Scope", 0, 3, val("geographic_scope"))
+case_studies = {
+    "Marriott International": """
+Marriott International is committed to sourcing 100% cage-free eggs globally by 2025.
 
-with st.sidebar.expander("Implementation"):
-    reported_progress = st.slider("Reported Progress", 0, 3, val("reported_progress"))
-    progress_vs_timeline = st.slider("Progress vs Timeline", 0, 3, val("progress_vs_timeline"))
-    supply_chain_evidence = st.slider("Supply Chain Evidence", 0, 3, val("supply_chain_evidence"))
-    consistency_across_reports = st.slider("Consistency Across Reports", 0, 3, val("consistency_across_reports"))
+As of 2023, approximately 35% of our egg supply is cage-free globally. Progress varies by region due to supply constraints.
 
-with st.sidebar.expander("Transparency"):
-    reporting_frequency = st.slider("Reporting Frequency", 0, 3, val("reporting_frequency"))
-    data_granularity = st.slider("Data Granularity", 0, 3, val("data_granularity"))
-    third_party_verification = st.slider("Third-Party Verification", 0, 3, val("third_party_verification"))
-    accessibility = st.slider("Accessibility", 0, 3, val("accessibility"))
+We engage with third-party auditors where feasible, but verification systems vary across markets.
 
-# -----------------------------
-# CALCULATIONS
-# -----------------------------
-commitment_score = (commitment_strength + language_strength + timeline_clarity + geographic_scope)/12*10
-implementation_score = (reported_progress + progress_vs_timeline + supply_chain_evidence + consistency_across_reports)/12*10
-transparency_score = (reporting_frequency + data_granularity + third_party_verification + accessibility)/12*10
+We report annually through our Serve 360 sustainability platform.
+""",
 
-# Geo modifier
-geo_modifier = 0
-if geography in ["India", "Asia"]:
-    geo_modifier = -0.5
-elif geography == "Global":
-    geo_modifier = 0.5
-elif geography == "Europe":
-    geo_modifier = 1
+    "Nestlé": """
+Nestlé is committed to improving animal welfare standards across its supply chain aligned with international guidelines.
 
-implementation_score = max(0, min(10, implementation_score + geo_modifier))
+Over 80% of key supply chains are compliant with our requirements as of 2023.
 
-final_score = commitment_score*0.3 + implementation_score*0.4 + transparency_score*0.3
+We conduct regular audits and publish annual sustainability reports with regional breakdowns.
 
-credibility_gap = commitment_score - implementation_score
-transparency_deficit = 10 - transparency_score
-
-# -----------------------------
-# RISK LOGIC
-# -----------------------------
-if commitment_score >= 7 and implementation_score <= 4:
-    risk = "High Greenwashing Risk"
-elif final_score < 4:
-    risk = "High Risk"
-elif final_score < 7:
-    risk = "Moderate Risk"
-else:
-    risk = "Low Risk"
-
-# Strategy
-if transparency_score < 4:
-    priority = "Increase transparency and disclosure pressure"
-elif implementation_score < 5:
-    priority = "Investigate supply chain implementation"
-else:
-    priority = "Monitor and maintain engagement"
-
-# -----------------------------
-# UI RESULTS
-# -----------------------------
-st.subheader(f"Results for: {company_name or selected_case}")
-
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Commitment", f"{commitment_score:.1f}")
-col2.metric("Implementation", f"{implementation_score:.1f}")
-col3.metric("Transparency", f"{transparency_score:.1f}")
-col4.metric("Final Score", f"{final_score:.1f}")
-
-# -----------------------------
-# INSIGHTS (NEW)
-# -----------------------------
-st.markdown("### 🔍 Key Insights")
-
-st.write(f"""
-**Risk Level:** {risk}  
-
-**Credibility Gap:** {credibility_gap:.1f}  
-→ Difference between commitment and actual implementation  
-
-**Transparency Deficit:** {transparency_deficit:.1f}  
-→ Indicates how much information is missing or unclear  
-""")
-
-# -----------------------------
-# STRATEGIC INTERPRETATION (NEW)
-# -----------------------------
-st.markdown("### 🧠 Strategic Interpretation")
-
-if credibility_gap > 2:
-    insight = "Significant gap between commitments and execution. High potential for accountability-focused campaigns."
-elif transparency_deficit > 3:
-    insight = "Limited disclosure creates an opportunity for transparency-driven pressure."
-else:
-    insight = "Company appears relatively aligned, focus should be on monitoring and incremental pressure."
-
-st.write(insight)
-
-# -----------------------------
-# ADVOCACY RECOMMENDATION (NEW)
-# -----------------------------
-st.markdown("### 📣 Advocacy Recommendation")
-
-st.write(f"""
-**Primary Action:** {priority}  
-
-This company should be targeted through:
-- Strategic engagement where possible  
-- Escalation if progress remains unclear  
-""")
-
-# -----------------------------
-# REPORT
-# -----------------------------
-report = f"""
-CORPORATE ACCOUNTABILITY REPORT
-
-Developed by: Anusha Narain | Ahimsa Fellowship (2025–26)
-
-Company: {company_name or "Sample"}
-Geography: {geography}
-
-Final Score: {final_score:.1f}
-Risk: {risk}
-
-Credibility Gap: {credibility_gap:.1f}
-Transparency Deficit: {transparency_deficit:.1f}
-
-Priority Action: {priority}
+Our goal is full compliance across sourcing regions by 2025.
 """
+}
 
-st.download_button("📥 Download Report", report, file_name="report.txt")
+# =========================
+# EVIDENCE LAYER
+# =========================
+st.markdown("## 📄 Evidence Layer")
 
-# -----------------------------
+if case != "None":
+    report_text = case_studies[case]
+    st.text_area("Loaded Case Study", report_text, height=200)
+else:
+    report_text = st.text_area("Paste sustainability report / policy excerpt", height=200)
+
+external_text = st.text_area("Paste NGO / media input (optional)", height=150)
+
+text = report_text.lower() if report_text else ""
+
+# =========================
+# SMART EXTRACTION
+# =========================
+st.markdown("## 🔍 Perception Layer (Smart Extraction)")
+
+signals = {
+    "commitment_strength": 1,
+    "language_strength": 1,
+    "timeline_clarity": 1,
+    "geographic_scope": 1,
+    "reported_progress": 1,
+    "progress_vs_timeline": 1,
+    "supply_chain_evidence": 1,
+    "consistency_across_reports": 2,
+    "reporting_frequency": 1,
+    "data_granularity": 1,
+    "third_party_verification": 0,
+    "accessibility": 1
+}
+
+if report_text:
+
+    if "100%" in text or "commit" in text:
+        signals["commitment_strength"] = 3
+
+    years = re.findall(r'20\d{2}', text)
+    if years:
+        signals["timeline_clarity"] = 3
+
+    percentages = re.findall(r'\d+%', text)
+    if percentages:
+        vals = [int(p.replace("%","")) for p in percentages]
+        max_p = max(vals)
+
+        if max_p >= 70:
+            signals["reported_progress"] = 3
+        elif max_p >= 40:
+            signals["reported_progress"] = 2
+
+    weak = ["aim", "aspire", "continue", "where feasible"]
+    strong = ["achieved", "completed", "compliant"]
+
+    if any(w in text for w in weak):
+        signals["language_strength"] = 1
+
+    if any(s in text for s in strong):
+        signals["language_strength"] = 3
+
+    if "audit" in text or "third-party" in text:
+        signals["third_party_verification"] = 3
+
+    if "region-specific" in text:
+        signals["data_granularity"] = 3
+
+    if "annually" in text:
+        signals["reporting_frequency"] = 3
+
+    if "however" in text or "constraints" in text:
+        signals["consistency_across_reports"] = 1
+
+# =========================
+# SIGNAL OVERRIDE
+# =========================
+st.markdown("## ⚙️ Signal Override")
+
+cols = st.columns(3)
+for i, key in enumerate(signals.keys()):
+    with cols[i % 3]:
+        signals[key] = st.slider(key, 0, 3, signals[key])
+
+# =========================
+# SCORING ENGINE
+# =========================
+def compute_scores(data):
+
+    intent = sum([
+        data["commitment_strength"],
+        data["language_strength"],
+        data["timeline_clarity"],
+        data["geographic_scope"]
+    ]) / 12 * 10
+
+    execution = sum([
+        data["reported_progress"],
+        data["progress_vs_timeline"],
+        data["supply_chain_evidence"],
+        data["consistency_across_reports"]
+    ]) / 12 * 10
+
+    transparency = sum([
+        data["reporting_frequency"],
+        data["data_granularity"],
+        data["third_party_verification"],
+        data["accessibility"]
+    ]) / 12 * 10
+
+    final = intent*0.3 + execution*0.4 + transparency*0.3
+
+    return round(intent,1), round(execution,1), round(transparency,1), round(final,1)
+
+intent, execution, transparency, final_score = compute_scores(signals)
+
+# =========================
+# CREDIBILITY ENGINE
+# =========================
+def credibility_engine(signals):
+    penalties = 0
+    if signals["language_strength"] == 1:
+        penalties += 1
+    if signals["third_party_verification"] == 0:
+        penalties += 1
+    if signals["consistency_across_reports"] == 1:
+        penalties += 1
+    return max(0, 3 - penalties)
+
+credibility = credibility_engine(signals)
+
+# =========================
+# EVIDENCE CONFIDENCE
+# =========================
+def evidence_confidence(text):
+    if not text:
+        return 0
+    score = 0
+    if len(text.split()) > 100:
+        score += 1
+    if "%" in text:
+        score += 1
+    if "audit" in text:
+        score += 1
+    return score
+
+conf_score = evidence_confidence(report_text)
+
+# =========================
+# CONTRADICTION ENGINE
+# =========================
+def contradiction_engine(ext):
+    if not ext:
+        return 0
+    ext = ext.lower()
+    if any(w in ext for w in ["violation", "abuse", "failure", "investigation"]):
+        return 2
+    return 0
+
+contradiction_score = contradiction_engine(external_text)
+
+# =========================
+# OVERCLAIMING RISK
+# =========================
+overclaim_score = (
+    (intent > execution + 2) +
+    (credibility <= 1) +
+    (conf_score <= 1) +
+    contradiction_score
+)
+
+if overclaim_score >= 3:
+    overclaim_level = "High"
+elif overclaim_score == 2:
+    overclaim_level = "Moderate"
+else:
+    overclaim_level = "Low"
+
+# =========================
+# BAAMT ENGINE
+# =========================
+def baamt(intent, execution, credibility, overclaim_level):
+
+    gap = intent - execution
+
+    if overclaim_level == "High":
+        return {
+            "frame": "Hypocrisy + Pressure",
+            "strategy": "High-pressure campaign",
+            "actions": ["Media escalation", "Public narrative", "Reputation pressure"]
+        }
+
+    elif gap > 2:
+        return {
+            "frame": "Accountability Gap",
+            "strategy": "Targeted engagement",
+            "actions": ["Investor engagement", "Benchmark pressure", "Coalition action"]
+        }
+
+    elif credibility >= 2:
+        return {
+            "frame": "Reinforcement",
+            "strategy": "Support leadership",
+            "actions": ["Highlight best practice", "Policy advocacy", "Partnerships"]
+        }
+
+    else:
+        return {
+            "frame": "Scrutiny",
+            "strategy": "Evidence strengthening",
+            "actions": ["Request disclosure", "External validation"]
+        }
+
+baamt_output = baamt(intent, execution, credibility, overclaim_level)
+
+# =========================
+# RESULTS
+# =========================
+st.markdown("## 📊 Results")
+
+st.metric("Intent", intent)
+st.metric("Execution", execution)
+st.metric("Transparency", transparency)
+st.metric("Final Score", final_score)
+
+st.write("Credibility:", credibility)
+st.write("Evidence Confidence:", conf_score)
+st.write("Overclaim Risk:", overclaim_level)
+
+# =========================
+# BAAMT OUTPUT
+# =========================
+st.markdown("## 🧠 BAAMT Advocacy Layer")
+
+st.write("Frame:", baamt_output["frame"])
+st.write("Strategy:", baamt_output["strategy"])
+
+st.write("Actions:")
+for a in baamt_output["actions"]:
+    st.write("-", a)
+
+# =========================
+# EXPLANATION LAYER
+# =========================
+if case != "None":
+    st.markdown("## 🧠 Why this result?")
+
+    st.write("- Signals extracted from disclosure text")
+    st.write("- Weighted scoring across intent, execution, transparency")
+    st.write("- Credibility penalties for weak verification or inconsistency")
+    st.write("- Overclaiming detected via gaps + external contradictions")
+
+# =========================
+# VISUAL DASHBOARD
+# =========================
+st.markdown("## 📊 Visual Dashboard")
+
+fig1 = go.Figure([
+    go.Bar(x=["Intent","Execution","Transparency"], y=[intent,execution,transparency])
+])
+st.plotly_chart(fig1, use_container_width=True)
+
+gap = intent - execution
+
+fig2 = go.Figure(go.Indicator(
+    mode="gauge+number",
+    value=gap,
+    title={'text': "Claim vs Execution Gap"},
+    gauge={'axis': {'range': [0,10]}}
+))
+st.plotly_chart(fig2, use_container_width=True)
+
+# =========================
 # FOOTER
-# -----------------------------
+# =========================
 st.markdown("---")
 st.caption("© Anusha Narain | Ahimsa Fellowship (2025–26)")
